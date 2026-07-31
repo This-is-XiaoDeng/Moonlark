@@ -9,6 +9,7 @@ from nonebot_plugin_chat.types import CachedMessage
 from nonebot_plugin_larkuser.utils.nickname import get_nickname
 from nonebot_plugin_userinfo import get_user_info
 from nonebot_plugin_alconna import (
+    Emoji,
     Image,
     Other,
     Segment,
@@ -98,6 +99,8 @@ class MessageParser:
             return await self.parse_reply(segment)
         elif isinstance(segment, Reference) and isinstance(self.bot, OneBotV11Bot) and segment.id is not None:
             return await self.parse_forawrd_message(segment.id)
+        elif isinstance(segment, Emoji):
+            return await self.parse_emoji(segment.id)
         elif isinstance(segment, Other):
             return await self.parse_special_segment(segment.origin)
         else:
@@ -107,12 +110,14 @@ class MessageParser:
         if segment.type == "poke":
             return await lang.text("parser.poke", self.user_id)
         if segment.type == "emoji":
-            emoji_id = segment.data.get("id", "")
-            emoji_name = QQ_EMOJI_MAP.get(emoji_id, None)
-            if emoji_name:
-                return await lang.text("parser.emoji", self.user_id, emoji_name)
-            return await lang.text("parser.emoji_unknown", self.user_id, emoji_id)
+            return await self.parse_emoji(segment.data.get("id", ""))
         return await lang.text("parser.other", self.user_id, segment)
+
+    async def parse_emoji(self, emoji_id: object) -> str:
+        emoji_name = QQ_EMOJI_MAP.get(str(emoji_id), None)
+        if emoji_name:
+            return await lang.text("parser.emoji", self.user_id, emoji_name)
+        return await lang.text("parser.emoji_unknown", self.user_id, str(emoji_id))
 
     async def parse_forawrd_message(self, ref_id: str) -> str:
         if not isinstance(self.bot, OneBotV11Bot):
